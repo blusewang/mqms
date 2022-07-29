@@ -58,9 +58,6 @@ func (c *Client) Emit(path string, body interface{}) (err error) {
 		Status:  TraceStatusEmit,
 		Event:   evt,
 		BeginAt: time.Now(),
-		EndAt:   nil,
-		Error:   "",
-		Stack:   "",
 	})
 	return c.handler.Pub(raw, 0)
 }
@@ -77,9 +74,6 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 		Status:  TraceStatusError,
 		Event:   evt,
 		BeginAt: time.Now(),
-		EndAt:   nil,
-		Error:   "",
-		Stack:   "",
 	})
 	if duration > time.Minute {
 		return c.handler.Save(raw, duration)

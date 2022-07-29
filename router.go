@@ -16,41 +16,41 @@ type HandlerFunc func(*Context) error
 
 type IRouter interface {
 	Use(...HandlerFunc) IRouter
-	Group(string) *Router
-	Item(string, HandlerFunc) *Router
+	Group(string) *Route
+	Item(string, HandlerFunc) *Route
 }
 
-type Router struct {
-	handlers []HandlerFunc
-	basePath string
-	engine   *Engine
+type Route struct {
+	functions []HandlerFunc
+	basePath  string
+	engine    *Engine
 }
 
-func (r *Router) Use(handlers ...HandlerFunc) IRouter {
-	r.handlers = handlers
+func (r *Route) Use(handlers ...HandlerFunc) IRouter {
+	r.functions = handlers
 	return r
 }
 
-func (r *Router) Group(name string) *Router {
-	return &Router{
-		handlers: r.handlers,
-		basePath: r.combineRoute(name),
-		engine:   r.engine,
+func (r *Route) Group(name string) *Route {
+	return &Route{
+		functions: r.functions,
+		basePath:  r.combineRoute(name),
+		engine:    r.engine,
 	}
 }
 
-func (r *Router) Item(name string, handlerFunc HandlerFunc) *Router {
+func (r *Route) Item(name string, handlerFunc HandlerFunc) *Route {
 	uri := r.combineRoute(name)
-	r.engine.routes[uri] = append(r.handlers, handlerFunc)
-	r.engine.handler.Log(fmt.Sprintf("[MQMS] %-25s --> %s (%d handlers)\n", uri, nameOfFunction(handlerFunc), len(r.engine.routes[uri])))
-	return &Router{
-		handlers: r.handlers,
-		basePath: uri,
-		engine:   r.engine,
+	r.engine.routes[uri] = append(r.functions, handlerFunc)
+	r.engine.handler.Log(fmt.Sprintf("[MQMS] %-25s --> %s (%d functions)\n", uri, nameOfFunction(handlerFunc), len(r.engine.routes[uri])))
+	return &Route{
+		functions: r.functions,
+		basePath:  uri,
+		engine:    r.engine,
 	}
 }
 
-func (r *Router) combineRoute(name string) string {
+func (r *Route) combineRoute(name string) string {
 	if r.basePath == "" {
 		return name
 	} else if name == "" {
@@ -60,7 +60,7 @@ func (r *Router) combineRoute(name string) string {
 	}
 }
 
-var _ IRouter = &Router{}
+var _ IRouter = &Route{}
 
 func nameOfFunction(f interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()

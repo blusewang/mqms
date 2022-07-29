@@ -34,18 +34,16 @@ type IEngineHandler interface {
 }
 
 type Engine struct {
-	Router
+	Route
 	ctx     context.Context
 	handler IEngineHandler
 	routes  map[string][]HandlerFunc
 	pool    sync.Pool
+	gw      sync.WaitGroup
 }
 
-func (s *Engine) Shutdown() (err error) {
-	select {
-	case <-s.ctx.Done():
-		return
-	}
+func (s *Engine) Shutdown() {
+	s.gw.Wait()
 }
 
 func (s *Engine) readLooper() {
@@ -70,6 +68,8 @@ func (s *Engine) readLooper() {
 
 // Handle 消息入口
 func (s *Engine) Handle(raw json.RawMessage) {
+	s.gw.Add(1)
+	defer s.gw.Done()
 	var trace Trace
 	if err := json.Unmarshal(raw, &trace.Event); err != nil {
 		s.handler.Log(fmt.Sprintf("消息解码🙅：%v", err))
