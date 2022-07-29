@@ -6,5 +6,11 @@
 
 package mqms
 
-type server struct {
-}
+type TraceStatus string
+
+const (
+	TraceStatusEmit      = "emit"
+	TraceStatusError     = "error"
+	TraceStatusExecBegin = "exec_begin"
+	TraceStatusExecEnd   = "exec_end"
+)

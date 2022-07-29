@@ -8,60 +8,89 @@ package mqms
 
 import (
 	"encoding/json"
-	"errors"
 	"github.com/google/uuid"
 	"time"
 )
 
-type event struct {
-	ID       uuid.UUID       `json:"id"`
-	ParentID *uuid.UUID      `json:"parent_id"`
-	Path     string          `json:"path"`
-	Body     json.RawMessage `json:"body"`
+type Event struct {
+	TransactionID uuid.UUID       `json:"transaction_id"` // TransactionID 业务ID，是所有事件的根
+	ID            uuid.UUID       `json:"id"`             // ID 事件ID
+	ParentID      *uuid.UUID      `json:"parent_id"`      // ParentID 来源事件ID
+	Delay         time.Duration   `json:"delay"`
+	Path          string          `json:"path"`
+	Body          json.RawMessage `json:"body"`
+	CreateAt      time.Time       `json:"create_at"`
 }
 
-type client struct {
-	name      string
-	onPub     func(body []byte, duration time.Duration) error
-	onStorage func(evt event, duration time.Duration) error
+type Trace struct {
+	Event
+	ExecID  uuid.UUID   `json:"exec_id"`
+	Status  TraceStatus `json:"status"`
+	BeginAt time.Time   `json:"begin_at"`
+	EndAt   *time.Time  `json:"end_at"`
+	Error   string      `json:"error"`
+	Stack   string      `json:"stack"`
 }
 
-func (c *client) SetOnPub(pub func(body []byte, duration time.Duration) error) {
-	c.onPub = pub
+type IClientHandler interface {
+	// Pub 发布消息至队列的代理
+	Pub(evt json.RawMessage, duration time.Duration) error
+	// Save 存储延迟事件至数据库
+	Save(evt json.RawMessage, duration time.Duration) error
+	// Trace 链路信息
+	Trace(trace Trace)
 }
 
-func (c *client) SetOnStorage(storage func(evt event, duration time.Duration) error) {
-	c.onStorage = storage
+type Client struct {
+	name    string
+	handler IClientHandler
 }
 
-func (c *client) Emit(path string, body interface{}) (err error) {
-	var evt event
+func (c *Client) Emit(path string, body interface{}) (err error) {
+	var evt Event
+	evt.TransactionID = uuid.New()
+	evt.ID = uuid.New()
 	evt.Path = path
+	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
 	raw, _ := json.Marshal(evt)
-	return c.onPub(raw, 0)
+	defer c.handler.Trace(Trace{
+		Status:  TraceStatusEmit,
+		Event:   evt,
+		BeginAt: time.Now(),
+		EndAt:   nil,
+		Error:   "",
+		Stack:   "",
+	})
+	return c.handler.Pub(raw, 0)
 }
 
-func (c *client) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
-	var evt event
+func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
+	var evt Event
 	evt.Path = path
+	evt.TransactionID = uuid.New()
+	evt.ID = uuid.New()
+	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
 	raw, _ := json.Marshal(evt)
+	defer c.handler.Trace(Trace{
+		Status:  TraceStatusError,
+		Event:   evt,
+		BeginAt: time.Now(),
+		EndAt:   nil,
+		Error:   "",
+		Stack:   "",
+	})
 	if duration > time.Minute {
-		return c.onStorage(evt, duration)
+		return c.handler.Save(raw, duration)
 	} else {
-		return c.onPub(raw, duration)
+		return c.handler.Pub(raw, duration)
 	}
 }
 
-func NewClient(name string) *client {
-	return &client{
-		name: name,
-		onPub: func(body []byte, duration time.Duration) error {
-			return errors.New("pub func not set")
-		},
-		onStorage: func(evt event, duration time.Duration) error {
-			return errors.New("storage func not set")
-		},
+func NewClient(name string, handler IClientHandler) *Client {
+	return &Client{
+		name:    name,
+		handler: handler,
 	}
 }
