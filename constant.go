@@ -6,11 +6,12 @@
 
 package mqms
 
+// TraceStatus 事件链路状态
 type TraceStatus string
 
 const (
-	TraceStatusEmit      = "emit"
-	TraceStatusError     = "error"
-	TraceStatusExecBegin = "exec_begin"
-	TraceStatusExecEnd   = "exec_end"
+	TraceStatusEmit      = "emit"       // 发布
+	TraceStatusError     = "error"      // 错误
+	TraceStatusExecBegin = "exec_begin" // 开始
+	TraceStatusExecEnd   = "exec_end"   // 结束
 )

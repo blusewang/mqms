@@ -12,11 +12,16 @@ import (
 	"runtime"
 )
 
+// HandlerFunc 函数体
 type HandlerFunc func(*Context) error
 
+// IRouter 路由
 type IRouter interface {
+	// Use 使用预处理函数
 	Use(...HandlerFunc) IRouter
+	// Group 路径分组
 	Group(string) *Route
+	// Item 业务函数
 	Item(string, HandlerFunc) *Route
 }
 
@@ -26,11 +31,13 @@ type Route struct {
 	engine    *Engine
 }
 
+// Use 使用预处理函数
 func (r *Route) Use(handlers ...HandlerFunc) IRouter {
 	r.functions = handlers
 	return r
 }
 
+// Group 路径分组
 func (r *Route) Group(name string) *Route {
 	return &Route{
 		functions: r.functions,
@@ -39,6 +46,7 @@ func (r *Route) Group(name string) *Route {
 	}
 }
 
+// Item 业务函数
 func (r *Route) Item(name string, handlerFunc HandlerFunc) *Route {
 	uri := r.combineRoute(name)
 	r.engine.routes[uri] = append(r.functions, handlerFunc)

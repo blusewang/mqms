@@ -12,16 +12,18 @@ import (
 	"time"
 )
 
+// Event 事件
 type Event struct {
 	TransactionID uuid.UUID       `json:"transaction_id"` // TransactionID 业务ID，是所有事件的根
 	ID            uuid.UUID       `json:"id"`             // ID 事件ID
 	ParentID      *uuid.UUID      `json:"parent_id"`      // ParentID 来源事件ID
-	Delay         time.Duration   `json:"delay"`
+	Delay         time.Duration   `json:"delay"`          // 延迟
 	Path          string          `json:"path"`
 	Body          json.RawMessage `json:"body"`
 	CreateAt      time.Time       `json:"create_at"`
 }
 
+// Trace 链路信息
 type Trace struct {
 	Event
 	ExecID  uuid.UUID   `json:"exec_id"`
@@ -32,20 +34,31 @@ type Trace struct {
 	Stack   string      `json:"stack"`
 }
 
+// IClientHandler 客户端代理协议
 type IClientHandler interface {
 	// Pub 发布消息至队列的代理
-	Pub(evt json.RawMessage, duration time.Duration) error
+	Pub(evtRaw json.RawMessage, duration time.Duration) error
 	// Save 存储延迟事件至数据库
-	Save(evt json.RawMessage, duration time.Duration) error
+	Save(evtID uuid.UUID, evtRaw json.RawMessage, duration time.Duration) error
 	// Trace 链路信息
 	Trace(trace Trace)
 }
 
+// IClient 客户端协议
+type IClient interface {
+	// Emit 发布事件
+	Emit(path string, body interface{}) (err error)
+	// EmitDefer 发布延迟事件
+	EmitDefer(path string, body interface{}, duration time.Duration) (err error)
+}
+
+// Client 客户端
 type Client struct {
 	name    string
 	handler IClientHandler
 }
 
+// Emit 发布实时事件
 func (c *Client) Emit(path string, body interface{}) (err error) {
 	var evt Event
 	evt.TransactionID = uuid.New()
@@ -62,6 +75,7 @@ func (c *Client) Emit(path string, body interface{}) (err error) {
 	return c.handler.Pub(raw, 0)
 }
 
+// EmitDefer 发岸上延时事件
 func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
 	var evt Event
 	evt.Path = path
@@ -76,12 +90,13 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		return c.handler.Save(raw, duration)
+		return c.handler.Save(evt.ID, raw, duration)
 	} else {
 		return c.handler.Pub(raw, duration)
 	}
 }
 
+// NewClient 创建客户端
 func NewClient(name string, handler IClientHandler) *Client {
 	return &Client{
 		name:    name,

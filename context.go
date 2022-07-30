@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// Context 函数上下文
 type Context struct {
 	ctx      context.Context
 	evt      Event
@@ -39,6 +40,7 @@ func (c *Context) Bind(o interface{}) (err error) {
 	return json.Unmarshal(c.evt.Body, o)
 }
 
+// Next 先执行下一个函数
 func (c *Context) Next() (err error) {
 	c.index++
 	for c.index < len(c.handlers) {
@@ -48,17 +50,19 @@ func (c *Context) Next() (err error) {
 	return
 }
 
+// Abort 中止后面的调用链
 func (c *Context) Abort() {
 	c.index = math.MaxInt16 >> 1
 }
 
+// Error 错误处理
 func (c *Context) Error(es error) error {
 	c.err = es.Error()
 	c.stack = string(debug.Stack())
 	return es
 }
 
-// Emit 发事件，在新协程中直接执行
+// Emit 内部发布事件，在新协程中直接执行
 func (c *Context) Emit(path string, body interface{}) {
 	go func() {
 		var evt Event
@@ -78,7 +82,7 @@ func (c *Context) Emit(path string, body interface{}) {
 	}()
 }
 
-// EmitDefer 按情况将消息送入队列或存储
+// EmitDefer 内部发布延时事件，按情况将消息送入队列或存储
 func (c *Context) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
 	if duration == 0 {
 		c.Emit(path, body)
@@ -98,7 +102,7 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		return c.engine.handler.Save(raw, duration)
+		return c.engine.handler.Save(evt.ID, raw, duration)
 	} else {
 		return c.engine.handler.Pub(raw, duration)
 	}

@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// HttpTrace http 性能信息
 type HttpTrace struct {
 	Method           string
 	Url              string
