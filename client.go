@@ -9,6 +9,7 @@ package mqms
 import (
 	"encoding/json"
 	"github.com/google/uuid"
+	"runtime/debug"
 	"time"
 )
 
@@ -42,6 +43,10 @@ type IClientHandler interface {
 	Save(evtID uuid.UUID, evtRaw json.RawMessage, duration time.Duration) error
 	// Trace 链路信息
 	Trace(trace Trace)
+	// Log 引擎日志
+	Log(l string)
+	// Fail 失败通知
+	Fail(evtID uuid.UUID, evtRaw json.RawMessage, err error, stack string)
 }
 
 // IClient 客户端协议
@@ -72,10 +77,14 @@ func (c *Client) Emit(path string, body interface{}) (err error) {
 		Event:   evt,
 		BeginAt: time.Now(),
 	})
-	return c.handler.Pub(raw, 0)
+	if err = c.handler.Pub(raw, 0); err != nil {
+		c.handler.Log("事件发布错误：" + err.Error())
+		c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+	}
+	return
 }
 
-// EmitDefer 发岸上延时事件
+// EmitDefer 发布延时事件
 func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
 	var evt Event
 	evt.Path = path
@@ -90,10 +99,17 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		return c.handler.Save(evt.ID, raw, duration)
+		if err = c.handler.Save(evt.ID, raw, duration); err != nil {
+			c.handler.Log("事件存储错误：" + err.Error())
+			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	} else {
-		return c.handler.Pub(raw, duration)
+		if err = c.handler.Pub(raw, duration); err != nil {
+			c.handler.Log("事件发布错误：" + err.Error())
+			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	}
+	return
 }
 
 // NewClient 创建客户端

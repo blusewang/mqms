@@ -26,10 +26,6 @@ type IEngineHandler interface {
 	IClientHandler
 	// DoRead 从数据库中读出 time.Now().Add(time.Minute) 之前所有没有入列的消息
 	DoRead() (list []Row, err error)
-	// Fail 失败通知
-	Fail(evtID uuid.UUID, evtRaw json.RawMessage, err error, stack string)
-	// Log 引擎日志
-	Log(l string)
 	// HttpTrace http请求监测
 	HttpTrace(ht HttpTrace)
 }
@@ -87,10 +83,17 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		return s.handler.Save(evt.ID, raw, duration)
+		if err = s.handler.Save(evt.ID, raw, duration); err != nil {
+			s.handler.Log("事件存储错误：" + err.Error())
+			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	} else {
-		return s.handler.Pub(raw, duration)
+		if err = s.handler.Pub(raw, duration); err != nil {
+			s.handler.Log("事件发布错误：" + err.Error())
+			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	}
+	return
 }
 
 func (s *Engine) readLooper() {
