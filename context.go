@@ -57,8 +57,10 @@ func (c *Context) Abort() {
 
 // Error 错误处理
 func (c *Context) Error(es error) error {
-	c.err = es.Error()
-	c.stack = string(debug.Stack())
+	if es != nil {
+		c.err = es.Error()
+		c.stack = string(debug.Stack())
+	}
 	return es
 }
 
@@ -83,7 +85,7 @@ func (c *Context) Emit(path string, body interface{}) {
 }
 
 // EmitDefer 内部发布延时事件，按情况将消息送入队列或存储
-func (c *Context) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
+func (c *Context) EmitDefer(path string, body interface{}, duration time.Duration) {
 	if duration == 0 {
 		c.Emit(path, body)
 		return
@@ -102,8 +104,8 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		return c.engine.handler.Save(evt.ID, raw, duration)
+		c.engine.handler.Save(evt.ID, raw, duration)
 	} else {
-		return c.engine.handler.Pub(raw, duration)
+		c.engine.handler.Pub(raw, duration)
 	}
 }
