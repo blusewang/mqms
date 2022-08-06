@@ -46,7 +46,7 @@ func (s *Engine) Shutdown() {
 }
 
 // Emit 发事件，在新协程中直接执行
-func (s *Engine) Emit(path string, body interface{}) (err error) {
+func (s *Engine) Emit(path string, body interface{}) {
 	go func() {
 		var evt Event
 		evt.TransactionID = uuid.New()
@@ -66,9 +66,10 @@ func (s *Engine) Emit(path string, body interface{}) (err error) {
 }
 
 // EmitDefer 按情况将消息送入队列或存储
-func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
+func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration) {
 	if duration == 0 {
-		return s.Emit(path, body)
+		s.Emit(path, body)
+		return
 	}
 	var evt Event
 	evt.Path = path
@@ -83,12 +84,12 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		if err = s.handler.Save(evt.ID, raw, duration); err != nil {
+		if err := s.handler.Save(evt.ID, raw, duration); err != nil {
 			s.handler.Log("事件存储错误：" + err.Error())
 			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	} else {
-		if err = s.handler.Pub(raw, duration); err != nil {
+		if err := s.handler.Pub(raw, duration); err != nil {
 			s.handler.Log("事件发布错误：" + err.Error())
 			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
@@ -97,9 +98,10 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 }
 
 // EmitEvent 发布事件
-func (s *Engine) EmitEvent(evtRaw json.RawMessage) (err error) {
+func (s *Engine) EmitEvent(evtRaw json.RawMessage) {
 	var evt Event
-	if err = json.Unmarshal(evtRaw, &evt); err != nil {
+	if err := json.Unmarshal(evtRaw, &evt); err != nil {
+		s.handler.Log("事件发布格式错误：" + err.Error())
 		return
 	}
 	go func() {

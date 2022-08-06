@@ -52,11 +52,11 @@ type IClientHandler interface {
 // IClient 客户端协议
 type IClient interface {
 	// Emit 发布事件
-	Emit(path string, body interface{}) (err error)
+	Emit(path string, body interface{})
 	// EmitDefer 发布延迟事件
-	EmitDefer(path string, body interface{}, duration time.Duration) (err error)
+	EmitDefer(path string, body interface{}, duration time.Duration)
 	// EmitEvent 发布延迟事件
-	EmitEvent(evtRaw json.RawMessage) (err error)
+	EmitEvent(evtRaw json.RawMessage)
 }
 
 // Client 客户端
@@ -66,7 +66,7 @@ type Client struct {
 }
 
 // Emit 发布实时事件
-func (c *Client) Emit(path string, body interface{}) (err error) {
+func (c *Client) Emit(path string, body interface{}) {
 	var evt Event
 	evt.TransactionID = uuid.New()
 	evt.ID = uuid.New()
@@ -79,7 +79,7 @@ func (c *Client) Emit(path string, body interface{}) (err error) {
 		Event:   evt,
 		BeginAt: time.Now(),
 	})
-	if err = c.handler.Pub(raw, 0); err != nil {
+	if err := c.handler.Pub(raw, 0); err != nil {
 		c.handler.Log("事件发布错误：" + err.Error())
 		c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 	}
@@ -87,7 +87,7 @@ func (c *Client) Emit(path string, body interface{}) (err error) {
 }
 
 // EmitDefer 发布延时事件
-func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration) (err error) {
+func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration) {
 	var evt Event
 	evt.Path = path
 	evt.TransactionID = uuid.New()
@@ -102,12 +102,12 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		if err = c.handler.Save(evt.ID, raw, duration); err != nil {
+		if err := c.handler.Save(evt.ID, raw, duration); err != nil {
 			c.handler.Log("事件存储错误：" + err.Error())
 			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	} else {
-		if err = c.handler.Pub(raw, duration); err != nil {
+		if err := c.handler.Pub(raw, duration); err != nil {
 			c.handler.Log("事件发布错误：" + err.Error())
 			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
@@ -116,9 +116,10 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 }
 
 // EmitEvent 发布事件
-func (c *Client) EmitEvent(evtRaw json.RawMessage) (err error) {
+func (c *Client) EmitEvent(evtRaw json.RawMessage) {
 	var evt Event
-	if err = json.Unmarshal(evtRaw, &evt); err != nil {
+	if err := json.Unmarshal(evtRaw, &evt); err != nil {
+		c.handler.Log("事件发布格式错误：" + err.Error())
 		return
 	}
 	defer c.handler.Trace(Trace{
@@ -126,7 +127,7 @@ func (c *Client) EmitEvent(evtRaw json.RawMessage) (err error) {
 		Event:   evt,
 		BeginAt: time.Now(),
 	})
-	if err = c.handler.Pub(evtRaw, 0); err != nil {
+	if err := c.handler.Pub(evtRaw, 0); err != nil {
 		c.handler.Log("事件发布错误：" + err.Error())
 		c.handler.Fail(evt.ID, evtRaw, err, string(debug.Stack()))
 	}
