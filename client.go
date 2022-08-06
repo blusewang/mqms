@@ -56,7 +56,7 @@ type IClient interface {
 	// EmitDefer 发布延迟事件
 	EmitDefer(path string, body interface{}, duration time.Duration) (err error)
 	// EmitEvent 发布延迟事件
-	EmitEvent(evt json.RawMessage) (err error)
+	EmitEvent(evtRaw json.RawMessage) (err error)
 }
 
 // Client 客户端
@@ -115,6 +115,7 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	return
 }
 
+// EmitEvent 发布事件
 func (c *Client) EmitEvent(evtRaw json.RawMessage) (err error) {
 	var evt Event
 	if err = json.Unmarshal(evtRaw, &evt); err != nil {

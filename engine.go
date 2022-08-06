@@ -96,6 +96,23 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	return
 }
 
+// EmitEvent 发布事件
+func (s *Engine) EmitEvent(evtRaw json.RawMessage) (err error) {
+	var evt Event
+	if err = json.Unmarshal(evtRaw, &evt); err != nil {
+		return
+	}
+	go func() {
+		defer s.handler.Trace(Trace{
+			Status:  TraceStatusEmit,
+			Event:   evt,
+			BeginAt: time.Now(),
+		})
+		s.Handle(evtRaw)
+	}()
+	return
+}
+
 func (s *Engine) readLooper() {
 	list, err := s.handler.DoRead()
 	if err == nil {
@@ -176,6 +193,8 @@ func (s *Engine) Handle(raw json.RawMessage) {
 	}
 	return
 }
+
+var _ IClient = &Engine{}
 
 // New 创建微服务
 func New(handler IEngineHandler) (e *Engine) {
