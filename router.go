@@ -13,7 +13,7 @@ import (
 )
 
 // HandlerFunc 函数体
-type HandlerFunc func(*Context) error
+type HandlerFunc func(*Context) (err error)
 
 // IRouter 路由
 type IRouter interface {
