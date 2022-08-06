@@ -38,9 +38,9 @@ type Trace struct {
 // IClientHandler 客户端代理协议
 type IClientHandler interface {
 	// Pub 发布消息至队列的代理
-	Pub(evtRaw json.RawMessage, duration time.Duration) error
+	Pub(evtRaw json.RawMessage, duration time.Duration) (err error)
 	// Save 存储延迟事件至数据库
-	Save(evtID uuid.UUID, evtRaw json.RawMessage, duration time.Duration) error
+	Save(evtID uuid.UUID, evtRaw json.RawMessage, duration time.Duration) (err error)
 	// Trace 链路信息
 	Trace(trace Trace)
 	// Log 引擎日志

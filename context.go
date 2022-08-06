@@ -104,8 +104,14 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 		BeginAt: time.Now(),
 	})
 	if duration > time.Minute {
-		c.engine.handler.Save(evt.ID, raw, duration)
+		if err := c.engine.handler.Save(evt.ID, raw, duration); err != nil {
+			c.engine.handler.Log("事件存储错误：" + err.Error())
+			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	} else {
-		c.engine.handler.Pub(raw, duration)
+		if err := c.engine.handler.Pub(raw, duration); err != nil {
+			c.engine.handler.Log("事件发布错误：" + err.Error())
+			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		}
 	}
 }
