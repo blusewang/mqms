@@ -78,7 +78,7 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	evt.Body, _ = json.Marshal(body)
 	raw, _ := json.Marshal(evt)
 	defer s.handler.Trace(Trace{
-		Status:  TraceStatusError,
+		Status:  TraceStatusEmit,
 		Event:   evt,
 		BeginAt: time.Now(),
 	})

@@ -55,6 +55,8 @@ type IClient interface {
 	Emit(path string, body interface{}) (err error)
 	// EmitDefer 发布延迟事件
 	EmitDefer(path string, body interface{}, duration time.Duration) (err error)
+	// EmitEvent 发布延迟事件
+	EmitEvent(evt json.RawMessage) (err error)
 }
 
 // Client 客户端
@@ -90,11 +92,12 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	evt.Path = path
 	evt.TransactionID = uuid.New()
 	evt.ID = uuid.New()
+	evt.Delay = duration
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
 	raw, _ := json.Marshal(evt)
 	defer c.handler.Trace(Trace{
-		Status:  TraceStatusError,
+		Status:  TraceStatusEmit,
 		Event:   evt,
 		BeginAt: time.Now(),
 	})
@@ -111,6 +114,25 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	}
 	return
 }
+
+func (c *Client) EmitEvent(evtRaw json.RawMessage) (err error) {
+	var evt Event
+	if err = json.Unmarshal(evtRaw, &evt); err != nil {
+		return
+	}
+	defer c.handler.Trace(Trace{
+		Status:  TraceStatusEmit,
+		Event:   evt,
+		BeginAt: time.Now(),
+	})
+	if err = c.handler.Pub(evtRaw, 0); err != nil {
+		c.handler.Log("事件发布错误：" + err.Error())
+		c.handler.Fail(evt.ID, evtRaw, err, string(debug.Stack()))
+	}
+	return
+}
+
+var _ IClient = &Client{}
 
 // NewClient 创建客户端
 func NewClient(name string, handler IClientHandler) *Client {
