@@ -7,7 +7,6 @@
 package mqms
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/google/uuid"
 	"runtime/debug"
@@ -71,16 +70,11 @@ type Client struct {
 func (c *Client) Emit(path string, body interface{}) {
 	var evt Event
 	evt.TransactionID = uuid.New()
-	arr := bytes.Split(debug.Stack(), []byte("\n"))
-	if len(arr) > 8 {
-		evt.Origin = string(bytes.Join(arr[4:8], []byte("\n")))
-	} else {
-		evt.Origin = string(bytes.Join(arr[4:], []byte("\n")))
-	}
 	evt.ID = uuid.New()
 	evt.Path = path
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
+	evt.Origin = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.handler.Trace(Trace{
 		Status:  TraceStatusEmit,
@@ -99,16 +93,11 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	var evt Event
 	evt.Path = path
 	evt.TransactionID = uuid.New()
-	arr := bytes.Split(debug.Stack(), []byte("\n"))
-	if len(arr) > 8 {
-		evt.Origin = string(bytes.Join(arr[4:8], []byte("\n")))
-	} else {
-		evt.Origin = string(bytes.Join(arr[4:], []byte("\n")))
-	}
 	evt.ID = uuid.New()
 	evt.Delay = duration
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
+	evt.Origin = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.handler.Trace(Trace{
 		Status:  TraceStatusEmit,

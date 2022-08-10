@@ -7,7 +7,6 @@
 package mqms
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"github.com/google/uuid"
@@ -69,18 +68,13 @@ func (c *Context) Error(es error) error {
 func (c *Context) Emit(path string, body interface{}) {
 	go func() {
 		var evt Event
-		arr := bytes.Split(debug.Stack(), []byte("\n"))
-		if len(arr) > 8 {
-			evt.Origin = string(bytes.Join(arr[4:8], []byte("\n")))
-		} else {
-			evt.Origin = string(bytes.Join(arr[4:], []byte("\n")))
-		}
 		evt.TransactionID = c.evt.TransactionID
 		evt.ID = uuid.New()
 		evt.ParentID = &c.evt.ID
 		evt.Path = path
 		evt.CreateAt = time.Now()
 		evt.Body, _ = json.Marshal(body)
+		evt.Origin = stack()
 		raw, _ := json.Marshal(evt)
 		defer c.engine.handler.Trace(Trace{
 			Status:  TraceStatusEmit,
@@ -98,18 +92,13 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 		return
 	}
 	var evt Event
-	arr := bytes.Split(debug.Stack(), []byte("\n"))
-	if len(arr) > 8 {
-		evt.Origin = string(bytes.Join(arr[4:8], []byte("\n")))
-	} else {
-		evt.Origin = string(bytes.Join(arr[4:], []byte("\n")))
-	}
 	evt.Path = path
 	evt.TransactionID = c.evt.TransactionID
 	evt.ID = uuid.New()
 	evt.ParentID = &c.evt.ID
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
+	evt.Origin = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.engine.handler.Trace(Trace{
 		Status:  TraceStatusEmit,

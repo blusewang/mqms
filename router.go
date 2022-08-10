@@ -8,8 +8,6 @@ package mqms
 
 import (
 	"fmt"
-	"reflect"
-	"runtime"
 )
 
 // HandlerFunc 函数体
@@ -69,7 +67,3 @@ func (r *Route) combineRoute(name string) string {
 }
 
 var _ IRouter = &Route{}
-
-func nameOfFunction(f interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
-}
