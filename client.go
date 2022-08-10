@@ -62,7 +62,6 @@ type IClient interface {
 
 // Client 客户端
 type Client struct {
-	name    string
 	handler IClientHandler
 }
 
@@ -140,9 +139,8 @@ func (c *Client) EmitEvent(evtRaw json.RawMessage) {
 var _ IClient = &Client{}
 
 // NewClient 创建客户端
-func NewClient(name string, handler IClientHandler) *Client {
+func NewClient(handler IClientHandler) *Client {
 	return &Client{
-		name:    name,
 		handler: handler,
 	}
 }
