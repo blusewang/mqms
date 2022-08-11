@@ -8,9 +8,11 @@ package mqms
 
 import (
 	"bytes"
+	"fmt"
 	"reflect"
 	"runtime"
 	"runtime/debug"
+	"time"
 )
 
 func nameOfFunction(f interface{}) string {
@@ -32,4 +34,9 @@ func stack() string {
 		}
 	}
 	return string(bytes.Join(lines, []byte(" | ")))
+}
+
+func normalLogFormat(format string, a ...any) string {
+	a = append([]any{time.Now().Format("15:04:05")}, a...)
+	return fmt.Sprintf("[MQMS]%v "+format+"\n", a...)
 }

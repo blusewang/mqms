@@ -87,12 +87,12 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	})
 	if duration > time.Minute {
 		if err := s.handler.Save(evt.ID, raw, duration); err != nil {
-			s.handler.Log(fmt.Sprintf("事件存储错误：%v\n", err.Error()))
+			s.handler.Log(normalLogFormat("事件存储错误：%v", err.Error()))
 			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	} else {
 		if err := s.handler.Pub(raw, duration); err != nil {
-			s.handler.Log(fmt.Sprintf("事件发布错误：%v\n", err.Error()))
+			s.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
 			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	}
@@ -103,7 +103,7 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 func (s *Engine) EmitEvent(evtRaw json.RawMessage) {
 	var evt Event
 	if err := json.Unmarshal(evtRaw, &evt); err != nil {
-		s.handler.Log(fmt.Sprintf("事件发布格式错误：%v\n", err.Error()))
+		s.handler.Log(normalLogFormat("事件发布格式错误：%v", err.Error()))
 		return
 	}
 	go func() {
@@ -125,14 +125,13 @@ func (s *Engine) readLooper() {
 			if d < 0 {
 				s.Handle(list[i].Raw)
 			} else {
-				s.handler.Log("延迟消息入列\n")
 				if err = s.handler.Pub(list[i].Raw, d); err != nil {
-					s.handler.Log(fmt.Sprintf("消息入列🙅：%v\n", err))
+					s.handler.Log(normalLogFormat("消息入列🙅：%v", err))
 				}
 			}
 		}
 	} else {
-		s.handler.Log(fmt.Sprintf("消息读取🙅：%v\n", err))
+		s.handler.Log(normalLogFormat("消息读取🙅：%v", err))
 	}
 	time.Sleep(time.Minute)
 	go s.readLooper()
@@ -144,7 +143,7 @@ func (s *Engine) Handle(raw json.RawMessage) {
 	defer s.gw.Done()
 	var trace Trace
 	if err := json.Unmarshal(raw, &trace.Event); err != nil {
-		s.handler.Log(fmt.Sprintf("消息解码🙅：%v\n", err))
+		s.handler.Log(normalLogFormat("消息解码🙅：%v", err))
 		return
 	}
 	trace.ExecID = uuid.New()
