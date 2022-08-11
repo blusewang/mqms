@@ -9,6 +9,7 @@ package mqms
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"math"
 	"net/http"
@@ -107,12 +108,12 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 	})
 	if duration > time.Minute {
 		if err := c.engine.handler.Save(evt.ID, raw, duration); err != nil {
-			c.engine.handler.Log("事件存储错误：" + err.Error())
+			c.engine.handler.Log(fmt.Sprintf("事件存储错误：%v\n", err.Error()))
 			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	} else {
 		if err := c.engine.handler.Pub(raw, duration); err != nil {
-			c.engine.handler.Log("事件发布错误：" + err.Error())
+			c.engine.handler.Log(fmt.Sprintf("事件发布错误：%v\n", err.Error()))
 			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	}

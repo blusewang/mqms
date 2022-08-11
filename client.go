@@ -8,6 +8,7 @@ package mqms
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"runtime/debug"
 	"time"
@@ -81,7 +82,7 @@ func (c *Client) Emit(path string, body interface{}) {
 		BeginAt: time.Now(),
 	})
 	if err := c.handler.Pub(raw, 0); err != nil {
-		c.handler.Log("事件发布错误：" + err.Error())
+		c.handler.Log(fmt.Sprintf("事件发布错误：%v\n", err.Error()))
 		c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 	}
 	return
@@ -105,12 +106,12 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	})
 	if duration > time.Minute {
 		if err := c.handler.Save(evt.ID, raw, duration); err != nil {
-			c.handler.Log("事件存储错误：" + err.Error())
+			c.handler.Log(fmt.Sprintf("事件存储错误：%v\n", err.Error()))
 			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	} else {
 		if err := c.handler.Pub(raw, duration); err != nil {
-			c.handler.Log("事件发布错误：" + err.Error())
+			c.handler.Log(fmt.Sprintf("事件发布错误：%v\n", err.Error()))
 			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
 		}
 	}
@@ -121,7 +122,7 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 func (c *Client) EmitEvent(evtRaw json.RawMessage) {
 	var evt Event
 	if err := json.Unmarshal(evtRaw, &evt); err != nil {
-		c.handler.Log("事件发布格式错误：" + err.Error())
+		c.handler.Log(fmt.Sprintf("事件发布格式错误：%v\n", err.Error()))
 		return
 	}
 	defer c.handler.Trace(Trace{
@@ -130,7 +131,7 @@ func (c *Client) EmitEvent(evtRaw json.RawMessage) {
 		BeginAt: time.Now(),
 	})
 	if err := c.handler.Pub(evtRaw, 0); err != nil {
-		c.handler.Log("事件发布错误：" + err.Error())
+		c.handler.Log(fmt.Sprintf("事件发布错误：%v\n", err.Error()))
 		c.handler.Fail(evt.ID, evtRaw, err, string(debug.Stack()))
 	}
 	return
