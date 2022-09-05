@@ -54,7 +54,7 @@ func (s *Engine) Emit(path string, body interface{}) {
 		evt.Path = path
 		evt.CreateAt = time.Now()
 		evt.Body, _ = json.Marshal(body)
-		evt.Origin = stack()
+		evt.CallerTrace = stack()
 		raw, _ := json.Marshal(evt)
 		defer s.handler.Trace(Trace{
 			Status:  TraceStatusEmit,
@@ -78,7 +78,7 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	evt.ID = uuid.New()
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
-	evt.Origin = stack()
+	evt.CallerTrace = stack()
 	raw, _ := json.Marshal(evt)
 	defer s.handler.Trace(Trace{
 		Status:  TraceStatusEmit,

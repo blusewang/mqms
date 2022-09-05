@@ -38,5 +38,5 @@ func stack() string {
 
 func normalLogFormat(format string, a ...any) string {
 	a = append([]any{time.Now().Format("15:04:05")}, a...)
-	return fmt.Sprintf("[MQMS]%v "+format+"\n", a...)
+	return fmt.Sprintf("[MQMS] %v "+format+"\n", a...)
 }

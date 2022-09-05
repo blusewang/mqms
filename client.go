@@ -16,7 +16,7 @@ import (
 // Event 事件
 type Event struct {
 	TransactionID uuid.UUID       `json:"transaction_id"` // TransactionID 业务ID，是所有事件的根
-	Origin        string          `json:"origin"`         // 来源
+	CallerTrace   string          `json:"caller_trace"`   // 来源
 	ID            uuid.UUID       `json:"id"`             // ID 事件ID
 	ParentID      *uuid.UUID      `json:"parent_id"`      // ParentID 来源事件ID
 	Delay         time.Duration   `json:"delay"`          // 延迟
@@ -73,7 +73,7 @@ func (c *Client) Emit(path string, body interface{}) {
 	evt.Path = path
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
-	evt.Origin = stack()
+	evt.CallerTrace = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.handler.Trace(Trace{
 		Status:  TraceStatusEmit,
@@ -96,7 +96,7 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	evt.Delay = duration
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
-	evt.Origin = stack()
+	evt.CallerTrace = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.handler.Trace(Trace{
 		Status:  TraceStatusEmit,

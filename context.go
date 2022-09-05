@@ -74,7 +74,7 @@ func (c *Context) Emit(path string, body interface{}) {
 		evt.Path = path
 		evt.CreateAt = time.Now()
 		evt.Body, _ = json.Marshal(body)
-		evt.Origin = stack()
+		evt.CallerTrace = stack()
 		raw, _ := json.Marshal(evt)
 		defer c.engine.handler.Trace(Trace{
 			Status:  TraceStatusEmit,
@@ -98,7 +98,7 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 	evt.ParentID = &c.evt.ID
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
-	evt.Origin = stack()
+	evt.CallerTrace = stack()
 	raw, _ := json.Marshal(evt)
 	defer c.engine.handler.Trace(Trace{
 		Status:  TraceStatusEmit,
