@@ -10,6 +10,8 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"runtime"
+	"runtime/debug"
 	"testing"
 	"time"
 )
@@ -26,4 +28,17 @@ func TestUUID(t *testing.T) {
 func TestCtx(t *testing.T) {
 	c := context.TODO()
 	c.Value("sdf")
+}
+
+func TestStack(t *testing.T) {
+	raw := debug.Stack()
+	log.Println(string(raw))
+	for i := 0; ; i++ {
+		_, f, n, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		log.Println(f, n)
+	}
+
 }

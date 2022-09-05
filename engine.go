@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -47,6 +46,7 @@ func (s *Engine) Shutdown() {
 
 // Emit 发事件，在新协程中直接执行
 func (s *Engine) Emit(path string, body interface{}) {
+	st := stack()
 	go func() {
 		var evt Event
 		evt.TransactionID = uuid.New()
@@ -54,7 +54,7 @@ func (s *Engine) Emit(path string, body interface{}) {
 		evt.Path = path
 		evt.CreateAt = time.Now()
 		evt.Body, _ = json.Marshal(body)
-		evt.CallerTrace = stack()
+		evt.CallerTrace = st
 		raw, _ := json.Marshal(evt)
 		defer s.handler.Trace(Trace{
 			Status:  TraceStatusEmit,
@@ -88,12 +88,12 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	if duration > time.Minute {
 		if err := s.handler.Save(evt.ID, raw, duration); err != nil {
 			s.handler.Log(normalLogFormat("事件存储错误：%v", err.Error()))
-			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			s.handler.Fail(evt.ID, raw, err, stack())
 		}
 	} else {
 		if err := s.handler.Pub(raw, duration); err != nil {
 			s.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
-			s.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			s.handler.Fail(evt.ID, raw, err, stack())
 		}
 	}
 	return
@@ -163,8 +163,8 @@ func (s *Engine) Handle(raw json.RawMessage) {
 		defer func() {
 			if e2 := recover(); e2 != nil {
 				trace.Status = TraceStatusError
-				trace.Error = e2.(error).Error()
-				trace.Stack = string(debug.Stack())
+				trace.Error = stringPtr(e2.(error).Error())
+				trace.Stack = stack()
 				s.handler.Fail(trace.Event.ID, raw, e2.(error), trace.Stack)
 				s.handler.Trace(trace)
 				s.handler.Log(fmt.Sprintf("[panic] [%v] --> %v : %v\n", trace.Event.Path, nameOfFunction(c.handlers[c.index]), e2))
@@ -191,7 +191,7 @@ func (s *Engine) Handle(raw json.RawMessage) {
 		s.pool.Put(c)
 	} else {
 		trace.Status = TraceStatusError
-		trace.Error = "没有可命中的服务"
+		trace.Error = stringPtr("没有可命中的服务")
 		s.handler.Trace(trace)
 		s.handler.Log(fmt.Sprintf("[error] [%v] --> nil : %v\n", trace.Event.Path, trace.Error))
 	}

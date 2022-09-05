@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"math"
 	"net/http"
-	"runtime/debug"
 	"time"
 )
 
@@ -24,16 +23,16 @@ type Context struct {
 	Http     http.Client
 	index    int
 	handlers []HandlerFunc
-	err      string
-	stack    string
+	err      *string
+	stack    []string
 }
 
 func (c *Context) reset() {
 	c.ctx = context.TODO()
 	c.index = -1
 	c.handlers = make([]HandlerFunc, 0)
-	c.err = ""
-	c.stack = ""
+	c.err = nil
+	c.stack = nil
 }
 
 func (c *Context) Bind(o interface{}) (err error) {
@@ -58,8 +57,8 @@ func (c *Context) Abort() {
 // Error 错误处理
 func (c *Context) Error(es error) error {
 	if es != nil {
-		c.err = es.Error()
-		c.stack = string(debug.Stack())
+		c.err = stringPtr(es.Error())
+		c.stack = stack()
 	}
 	return es
 }
@@ -108,12 +107,12 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 	if duration > time.Minute {
 		if err := c.engine.handler.Save(evt.ID, raw, duration); err != nil {
 			c.engine.handler.Log(normalLogFormat("事件存储错误：%v", err.Error()))
-			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			c.engine.handler.Fail(evt.ID, raw, err, stack())
 		}
 	} else {
 		if err := c.engine.handler.Pub(raw, duration); err != nil {
 			c.engine.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
-			c.engine.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			c.engine.handler.Fail(evt.ID, raw, err, stack())
 		}
 	}
 }

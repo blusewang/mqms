@@ -7,12 +7,9 @@
 package mqms
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"runtime"
-	"runtime/debug"
 	"time"
 )
 
@@ -20,25 +17,27 @@ func nameOfFunction(f interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
-func stack() json.RawMessage {
-	arr := bytes.Split(debug.Stack(), []byte("\n"))
-	if len(arr) < 8 {
-		return json.RawMessage("[]")
-	}
+func stack() []string {
 	var lines []string
-	for i := 8; i < len(arr); i++ {
-		if bytes.HasPrefix(arr[i], []byte("\t")) {
-			lines = append(lines, string(bytes.Split(arr[i][1:], []byte(" "))[0]))
-		}
-		if len(lines) >= 4 {
+	for i := 2; ; i++ {
+		_, f, n, ok := runtime.Caller(i)
+		if !ok {
 			break
 		}
+		lines = append(lines, fmt.Sprintf("%s:%d", f, n))
 	}
-	var raw, _ = json.Marshal(lines)
-	return raw
+	return lines
 }
 
 func normalLogFormat(format string, a ...any) string {
 	a = append([]any{time.Now().Format("15:04:05")}, a...)
 	return fmt.Sprintf("[MQMS] %v "+format+"\n", a...)
+}
+
+func stringPtr(s string) *string {
+	if s == "" {
+		return nil
+	} else {
+		return &s
+	}
 }

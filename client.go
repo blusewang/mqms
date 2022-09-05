@@ -9,14 +9,13 @@ package mqms
 import (
 	"encoding/json"
 	"github.com/google/uuid"
-	"runtime/debug"
 	"time"
 )
 
 // Event 事件
 type Event struct {
 	TransactionID uuid.UUID       `json:"transaction_id"` // TransactionID 业务ID，是所有事件的根
-	CallerTrace   json.RawMessage `json:"caller_trace"`   // 调用者追踪栈
+	CallerTrace   []string        `json:"caller_trace"`   // 调用者追踪栈
 	ID            uuid.UUID       `json:"id"`             // ID 事件ID
 	ParentID      *uuid.UUID      `json:"parent_id"`      // ParentID 来源事件ID
 	Delay         time.Duration   `json:"delay"`          // 延迟
@@ -32,8 +31,8 @@ type Trace struct {
 	Status  TraceStatus `json:"status"`
 	BeginAt time.Time   `json:"begin_at"`
 	EndAt   *time.Time  `json:"end_at"`
-	Error   string      `json:"error"`
-	Stack   string      `json:"stack"`
+	Error   *string     `json:"error"`
+	Stack   []string    `json:"stack"`
 }
 
 // IClientHandler 客户端代理协议
@@ -47,7 +46,7 @@ type IClientHandler interface {
 	// Log 引擎日志
 	Log(l string)
 	// Fail 失败通知
-	Fail(evtID uuid.UUID, evtRaw json.RawMessage, err error, stack string)
+	Fail(evtID uuid.UUID, evtRaw json.RawMessage, err error, stack []string)
 }
 
 // IClient 客户端协议
@@ -82,7 +81,7 @@ func (c *Client) Emit(path string, body interface{}) {
 	})
 	if err := c.handler.Pub(raw, 0); err != nil {
 		c.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
-		c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+		c.handler.Fail(evt.ID, raw, err, stack())
 	}
 	return
 }
@@ -106,12 +105,12 @@ func (c *Client) EmitDefer(path string, body interface{}, duration time.Duration
 	if duration > time.Minute {
 		if err := c.handler.Save(evt.ID, raw, duration); err != nil {
 			c.handler.Log(normalLogFormat("事件存储错误：%v", err.Error()))
-			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			c.handler.Fail(evt.ID, raw, err, stack())
 		}
 	} else {
 		if err := c.handler.Pub(raw, duration); err != nil {
 			c.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
-			c.handler.Fail(evt.ID, raw, err, string(debug.Stack()))
+			c.handler.Fail(evt.ID, raw, err, stack())
 		}
 	}
 	return
@@ -131,7 +130,7 @@ func (c *Client) EmitEvent(evtRaw json.RawMessage) {
 	})
 	if err := c.handler.Pub(evtRaw, 0); err != nil {
 		c.handler.Log(normalLogFormat("事件发布错误：%v", err.Error()))
-		c.handler.Fail(evt.ID, evtRaw, err, string(debug.Stack()))
+		c.handler.Fail(evt.ID, evtRaw, err, stack())
 	}
 	return
 }
