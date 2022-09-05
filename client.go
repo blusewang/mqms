@@ -16,7 +16,7 @@ import (
 // Event 事件
 type Event struct {
 	TransactionID uuid.UUID       `json:"transaction_id"` // TransactionID 业务ID，是所有事件的根
-	CallerTrace   string          `json:"caller_trace"`   // 来源
+	CallerTrace   json.RawMessage `json:"caller_trace"`   // 调用者追踪栈
 	ID            uuid.UUID       `json:"id"`             // ID 事件ID
 	ParentID      *uuid.UUID      `json:"parent_id"`      // ParentID 来源事件ID
 	Delay         time.Duration   `json:"delay"`          // 延迟

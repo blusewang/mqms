@@ -8,6 +8,7 @@ package mqms
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -19,21 +20,22 @@ func nameOfFunction(f interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }
 
-func stack() string {
+func stack() json.RawMessage {
 	arr := bytes.Split(debug.Stack(), []byte("\n"))
 	if len(arr) < 8 {
-		return "unknown"
+		return json.RawMessage("[]")
 	}
-	var lines [][]byte
+	var lines []string
 	for i := 8; i < len(arr); i++ {
 		if bytes.HasPrefix(arr[i], []byte("\t")) {
-			lines = append(lines, bytes.Split(arr[i][1:], []byte(" "))[0])
+			lines = append(lines, string(bytes.Split(arr[i][1:], []byte(" "))[0]))
 		}
 		if len(lines) >= 4 {
 			break
 		}
 	}
-	return string(bytes.Join(lines, []byte(" | ")))
+	var raw, _ = json.Marshal(lines)
+	return raw
 }
 
 func normalLogFormat(format string, a ...any) string {
