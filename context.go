@@ -94,6 +94,7 @@ func (c *Context) EmitDefer(path string, body interface{}, duration time.Duratio
 	evt.Path = path
 	evt.TransactionID = c.evt.TransactionID
 	evt.ID = uuid.New()
+	evt.Delay = duration
 	evt.ParentID = &c.evt.ID
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)

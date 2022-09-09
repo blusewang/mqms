@@ -76,6 +76,7 @@ func (s *Engine) EmitDefer(path string, body interface{}, duration time.Duration
 	evt.Path = path
 	evt.TransactionID = uuid.New()
 	evt.ID = uuid.New()
+	evt.Delay = duration
 	evt.CreateAt = time.Now()
 	evt.Body, _ = json.Marshal(body)
 	evt.CallerTrace = stack()
