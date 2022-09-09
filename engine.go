@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -32,11 +33,12 @@ type IEngineHandler interface {
 // Engine 主引擎
 type Engine struct {
 	Route
-	ctx     context.Context
-	handler IEngineHandler
-	routes  map[string][]HandlerFunc
-	pool    sync.Pool
-	gw      sync.WaitGroup
+	ctx               context.Context
+	handler           IEngineHandler
+	routes            map[string][]HandlerFunc
+	pool              sync.Pool
+	gw                sync.WaitGroup
+	defaultHttpClient *http.Client
 }
 
 // Shutdown 安全地中止业务，等待最后一个函数执行完
@@ -159,6 +161,7 @@ func (s *Engine) Handle(raw json.RawMessage) {
 		c.evt = trace.Event
 		c.engine = s
 		c.handlers = s.routes[trace.Event.Path]
+		c.Http.Transport.(*httpTransport).evtID = trace.Event.ID
 
 		// 闪退捕获
 		defer func() {
@@ -208,13 +211,14 @@ func New(handler IEngineHandler) (e *Engine) {
 		handler: handler,
 		routes:  make(map[string][]HandlerFunc),
 	}
+	e.defaultHttpClient = &http.Client{Transport: &httpTransport{http.Transport{}, e, uuid.Nil}}
 	e.engine = e
 	e.pool.New = func() any {
 		return &Context{
 			ctx:    context.TODO(),
 			evt:    Event{},
 			engine: e,
-			Http:   client(e),
+			Http:   e.defaultHttpClient,
 		}
 	}
 	go e.readLooper()

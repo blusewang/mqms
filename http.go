@@ -7,28 +7,32 @@
 package mqms
 
 import (
+	"github.com/google/uuid"
 	"net/http"
 	"time"
 )
 
 // HttpTrace http 性能信息
 type HttpTrace struct {
-	Method           string
-	Url              string
-	BeginAt          time.Time
-	EndAt            time.Time
-	ReqContentLength int64
-	ResStatus        string
+	EvtID            uuid.UUID `json:"evt_id"`
+	Method           string    `json:"method"`
+	Url              string    `json:"url"`
+	BeginAt          time.Time `json:"begin_at"`
+	EndAt            time.Time `json:"end_at"`
+	ReqContentLength int64     `json:"req_content_length"`
+	ResStatus        string    `json:"res_status"`
 }
 
 // 检测HTTP性能
 type httpTransport struct {
 	t      http.Transport
 	engine *Engine
+	evtID  uuid.UUID
 }
 
 func (m *httpTransport) RoundTrip(req *http.Request) (res *http.Response, err error) {
 	ht := HttpTrace{
+		EvtID:            m.evtID,
 		Method:           req.Method,
 		Url:              req.URL.String(),
 		BeginAt:          time.Now(),
@@ -43,8 +47,4 @@ func (m *httpTransport) RoundTrip(req *http.Request) (res *http.Response, err er
 	}
 	m.engine.handler.HttpTrace(ht)
 	return
-}
-
-func client(e *Engine) http.Client {
-	return http.Client{Transport: &httpTransport{http.Transport{}, e}}
 }

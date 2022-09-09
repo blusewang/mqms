@@ -20,7 +20,7 @@ type Context struct {
 	ctx      context.Context
 	evt      Event
 	engine   *Engine
-	Http     http.Client
+	Http     *http.Client
 	index    int
 	handlers []HandlerFunc
 	err      *string
