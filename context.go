@@ -65,23 +65,21 @@ func (c *Context) Error(es error) error {
 
 // Emit 内部发布事件，在新协程中直接执行
 func (c *Context) Emit(path string, body interface{}) {
-	go func() {
-		var evt Event
-		evt.TransactionID = c.evt.TransactionID
-		evt.ID = uuid.New()
-		evt.ParentID = &c.evt.ID
-		evt.Path = path
-		evt.CreateAt = time.Now()
-		evt.Body, _ = json.Marshal(body)
-		evt.CallerTrace = stack()
-		raw, _ := json.Marshal(evt)
-		defer c.engine.handler.Trace(Trace{
-			Status:  TraceStatusEmit,
-			Event:   evt,
-			BeginAt: time.Now(),
-		})
-		c.engine.Handle(raw)
-	}()
+	var evt Event
+	evt.TransactionID = c.evt.TransactionID
+	evt.ID = uuid.New()
+	evt.ParentID = &c.evt.ID
+	evt.Path = path
+	evt.CreateAt = time.Now()
+	evt.Body, _ = json.Marshal(body)
+	evt.CallerTrace = stack()
+	raw, _ := json.Marshal(evt)
+	defer c.engine.handler.Trace(Trace{
+		Status:  TraceStatusEmit,
+		Event:   evt,
+		BeginAt: time.Now(),
+	})
+	go c.engine.Handle(raw)
 }
 
 // EmitDefer 内部发布延时事件，按情况将消息送入队列或存储
