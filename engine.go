@@ -48,23 +48,20 @@ func (s *Engine) Shutdown() {
 
 // Emit 发事件，在新协程中直接执行
 func (s *Engine) Emit(path string, body interface{}) {
-	st := stack()
-	go func() {
-		var evt Event
-		evt.TransactionID = uuid.New()
-		evt.ID = uuid.New()
-		evt.Path = path
-		evt.CreateAt = time.Now()
-		evt.Body, _ = json.Marshal(body)
-		evt.CallerTrace = st
-		raw, _ := json.Marshal(evt)
-		defer s.handler.Trace(Trace{
-			Status:  TraceStatusEmit,
-			Event:   evt,
-			BeginAt: time.Now(),
-		})
-		s.Handle(raw)
-	}()
+	var evt Event
+	evt.TransactionID = uuid.New()
+	evt.ID = uuid.New()
+	evt.Path = path
+	evt.CreateAt = time.Now()
+	evt.Body, _ = json.Marshal(body)
+	evt.CallerTrace = stack()
+	raw, _ := json.Marshal(evt)
+	defer s.handler.Trace(Trace{
+		Status:  TraceStatusEmit,
+		Event:   evt,
+		BeginAt: time.Now(),
+	})
+	go s.Handle(raw)
 	return
 }
 
